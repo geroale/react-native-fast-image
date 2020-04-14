@@ -11,11 +11,11 @@ import java.util.List;
 public class FastImageViewPackage implements ReactPackage {
     @Override
     public List<NativeModule> createNativeModules(ReactApplicationContext reactContext) {
-        return Collections.<NativeModule>singletonList(new FastImageViewModule(reactContext));
+        return Collections.<NativeModule>singletonList(new FastImagePreloaderModule(reactContext));
     }
 
     @Override
     public List<ViewManager> createViewManagers(ReactApplicationContext reactContext) {
-        return Collections.<ViewManager>singletonList(new FastImagePreloaderModule());
+        return Collections.<ViewManager>singletonList(new FastImageViewManager());
     }
 }
