@@ -134,6 +134,13 @@ Headers to load the image with. e.g. `{ Authorization: 'someAuthToken' }`.
 
 ---
 
+### `defaultSource?: number`
+
+-   An asset loaded with `require(...)`.
+-   Note that like the built-in `Image` implementation, on Android `defaultSource` does not work in debug mode. This is due to the fact that assets are sent from the dev server, but RN's functions only know how to load it from `res`.
+
+---
+
 ### `resizeMode?: enum`
 
 -   `FastImage.resizeMode.contain` - Scale the image uniformly (maintain the image's aspect ratio) so that both dimensions (width and height) of the image will be equal to or less than the corresponding dimension of the view (minus padding).
@@ -196,21 +203,25 @@ If supplied, changes the color of all the non-transparent pixels to the given co
 
 ## Static Methods
 
-### `FastImage.preload: (source[]) => void`
+### `FastImage.preload: (source[], onProgress?, onComplete?) => void`
 
 Preload images to display later. e.g.
 
 ```js
-FastImage.preload([
+FastImage.preload(
+  [
     {
-        uri: 'https://facebook.github.io/react/img/logo_og.png',
-        headers: { Authorization: 'someAuthToken' },
+      uri: 'https://facebook.github.io/react/img/logo_og.png',
+      headers: { Authorization: 'someAuthToken' },
     },
     {
-        uri: 'https://facebook.github.io/react/img/logo_og.png',
-        headers: { Authorization: 'someAuthToken' },
+      uri: 'https://facebook.github.io/react/img/logo_og.png',
+      headers: { Authorization: 'someAuthToken' },
     },
-])
+  ],
+  (finished, total) => console.log(`Preloaded ${finished}/${total} images`),
+  (finished, skipped) => console.log(`Completed. Failed to load ${skipped}/${finished} images`),
+)
 ```
 
 ## Troubleshooting

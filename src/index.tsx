@@ -2,17 +2,20 @@ import React, { forwardRef, memo } from 'react'
 import {
     View,
     Image,
-    NativeModules,
     requireNativeComponent,
     StyleSheet,
+    Platform,
     FlexStyle,
     LayoutChangeEvent,
     ShadowStyleIOS,
     StyleProp,
-    TransformsStyle,
+    TransformsStyle
 } from 'react-native'
 
-const FastImageViewNativeModule = NativeModules.FastImageView
+// @ts-ignore
+import preloaderManager from "./preloaderManager"
+
+const isAndroid = Platform.OS === 'android'
 
 type ResizeMode = 'contain' | 'cover' | 'stretch' | 'center'
 
@@ -63,6 +66,14 @@ export interface OnProgressEvent {
     }
 }
 
+export interface PreloadProgressHandler {
+    (loaded: number, total: number): void
+}
+
+export interface PreloadCompletionHandler {
+    (loaded: number, skipped: number): void
+}
+
 export interface ImageStyle extends FlexStyle, TransformsStyle, ShadowStyleIOS {
     backfaceVisibility?: 'visible' | 'hidden'
     borderBottomLeftRadius?: number
@@ -80,6 +91,7 @@ export interface ImageStyle extends FlexStyle, TransformsStyle, ShadowStyleIOS {
 
 export interface FastImageProps {
     source: Source | number
+    defaultSource?: number
     resizeMode?: ResizeMode
     fallback?: boolean
 
@@ -129,6 +141,7 @@ export interface FastImageProps {
 
 function FastImageBase({
     source,
+    defaultSource,
     tintColor,
     onLoadStart,
     onProgress,
@@ -143,6 +156,25 @@ function FastImageBase({
     ...props
 }: FastImageProps & { forwardedRef: React.Ref<any> }) {
     const resolvedSource = Image.resolveAssetSource(source as any)
+    let resolvedDefaultSource = defaultSource
+
+    if (isAndroid) {
+        // Android receives a URI string, and resolves into a Drawable using RN's methods
+        // @ts-ignore
+        resolvedDefaultSource = Image.resolveAssetSource(defaultSource)
+
+        if (resolvedDefaultSource)
+            // @ts-ignore
+            resolvedDefaultSource = resolvedDefaultSource.uri
+        else resolvedDefaultSource = undefined
+    } else if (typeof resolvedDefaultSource !== 'number') {
+        // In iOS the number is passed, and bridged automatically into an UIImage
+        resolvedDefaultSource = undefined
+    }
+
+    if ((tintColor === null || tintColor === undefined) && style) {
+        tintColor = StyleSheet.flatten(style).tintColor
+    }
 
     if (fallback) {
         return (
@@ -151,6 +183,7 @@ function FastImageBase({
                     {...props}
                     style={StyleSheet.absoluteFill}
                     source={resolvedSource}
+                    defaultSource={defaultSource}
                     onLoadStart={onLoadStart}
                     onProgress={onProgress}
                     onLoad={onLoad as any}
@@ -170,6 +203,7 @@ function FastImageBase({
                 tintColor={tintColor}
                 style={StyleSheet.absoluteFill}
                 source={resolvedSource}
+                defaultSource={resolvedDefaultSource}
                 onFastImageLoadStart={onLoadStart}
                 onFastImageProgress={onProgress}
                 onFastImageLoad={onLoad}
@@ -196,7 +230,11 @@ interface FastImageStaticProperties {
     resizeMode: typeof resizeMode
     priority: typeof priority
     cacheControl: typeof cacheControl
-    preload: (sources: Source[]) => void
+    preload: (
+      sources: Source[],
+      onProgress?: PreloadProgressHandler,
+      onComplete?: PreloadCompletionHandler
+    ) => void
 }
 
 const FastImage: React.ComponentType<FastImageProps> &
@@ -208,8 +246,12 @@ FastImage.cacheControl = cacheControl
 
 FastImage.priority = priority
 
-FastImage.preload = (sources: Source[]) =>
-    FastImageViewNativeModule.preload(sources)
+FastImage.preload = (sources, onProgress, onComplete) => {
+  if(sources.length)
+    return preloaderManager.preload(sources, onProgress, onComplete)
+  // @ts-ignore
+  return onComplete()
+}
 
 const styles = StyleSheet.create({
     imageContainer: {

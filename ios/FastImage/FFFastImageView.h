@@ -18,6 +18,6 @@
 @property (nonatomic, assign) RCTResizeMode resizeMode;
 @property (nonatomic, strong) FFFastImageSource *source;
 @property (nonatomic, strong) UIColor *imageColor;
+@property (nonatomic, strong) UIImage *defaultSource;
 
 @end
-

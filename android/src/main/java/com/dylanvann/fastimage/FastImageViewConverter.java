@@ -57,10 +57,12 @@ class FastImageViewConverter {
                 put("stretch", ScaleType.FIT_XY);
                 put("center", ScaleType.CENTER);
             }};
-    
+
     // Resolve the source uri to a file path that android understands.
-    static FastImageSource getImageSource(Context context, ReadableMap source) {
-        return new FastImageSource(context, source.getString("uri"), getHeaders(source));
+    static @Nullable FastImageSource getImageSource(Context context, @Nullable ReadableMap source) {
+        return source == null
+                ? null
+                : new FastImageSource(context, source.getString("uri"), getHeaders(source));
     }
 
     static Headers getHeaders(ReadableMap source) {
@@ -112,8 +114,8 @@ class FastImageViewConverter {
             .skipMemoryCache(skipMemoryCache)
             .priority(priority)
             .placeholder(TRANSPARENT_DRAWABLE);
-        
-        if (imageSource.isResource()) {
+
+        if (imageSource != null && imageSource.isResource()) {
             // Every local resource (drawable) in Android has its own unique numeric id, which are
             // generated at build time. Although these ids are unique, they are not guaranteed unique
             // across builds. The underlying glide implementation caches these resources. To make
@@ -123,7 +125,7 @@ class FastImageViewConverter {
             options = options.apply(signatureOf(ApplicationVersionSignature.obtain(context)));
         }
 
-        return options;                
+        return options;
     }
 
     private static FastImageCacheControl getCacheControl(ReadableMap source) {
